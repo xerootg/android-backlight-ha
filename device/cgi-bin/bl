@@ -1,0 +1,14 @@
+#!/system/bin/sh
+N=/sys/class/backlight/backlight
+printf "Content-type: text/plain\r\n\r\n"
+q="$QUERY_STRING"
+case "$q" in *off*) echo 4 > "$N/bl_power" ;; *on*) echo 0 > "$N/bl_power" ;; esac
+case "$q" in
+  *v=*) v=${q#*v=}; v=${v%%&*}; c=$(echo "$v" | tr -cd 0-9)
+        if [ -n "$c" ]; then [ "$c" -gt 255 ] 2>/dev/null && c=255
+          echo "$c" > "$N/brightness" 2>/dev/null
+          if [ "$c" -gt 0 ] 2>/dev/null; then echo 0 > "$N/bl_power" 2>/dev/null; fi
+        fi ;;
+esac
+p=$(cat "$N/bl_power" 2>/dev/null); b=$(cat "$N/brightness" 2>/dev/null)
+if [ "$p" = "0" ]; then echo "ON $b"; else echo "OFF $b"; fi

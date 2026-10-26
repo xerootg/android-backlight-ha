@@ -1,0 +1,30 @@
+# Add to Home Assistant configuration.yaml. Replace the IP with your device.
+# Exposes the panel backlight as a dimmable light (on/off + brightness).
+
+shell_command:
+  panel_lcd_set: "wget -qO- 'http://DEVICE_IP:8099/cgi-bin/bl?v={{ value }}'"
+  panel_lcd_on: "wget -qO- 'http://DEVICE_IP:8099/cgi-bin/bl?on'"
+  panel_lcd_off: "wget -qO- 'http://DEVICE_IP:8099/cgi-bin/bl?off'"
+
+command_line:
+  - sensor:
+      name: panel_lcd_raw      # emits "ON <level>" / "OFF <level>"
+      command: "wget -qO- 'http://DEVICE_IP:8099/cgi-bin/bl?q=state'"
+      scan_interval: 30
+
+template:
+  - light:
+      - name: "Panel LCD"
+        unique_id: panel_lcd_lamp
+        state: "{{ 'ON' in states('sensor.panel_lcd_raw') }}"
+        level: >-
+          {{ states('sensor.panel_lcd_raw').split(' ')[1] | int(0)
+             if states('sensor.panel_lcd_raw')|length > 2 else 0 }}
+        turn_on:
+          - action: shell_command.panel_lcd_on
+        turn_off:
+          - action: shell_command.panel_lcd_off
+        set_level:
+          - action: shell_command.panel_lcd_set
+            data:
+              value: "{{ brightness }}"
